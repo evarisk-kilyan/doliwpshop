@@ -31,8 +31,8 @@ DoliWPshopSetupPage = DoliWPshop setup page
 WPSHOP_URL_WORDPRESS = WordPress website URL
 WPSHOP_TOKEN = API Key WPshop
 CommunicationWordPress = Communication with WordPress
-ConnectedWordPress = Connected to WordPress ✔
-FailureWordPress = Connection failure with WordPress ❌
+ConnectedWordPress = Connected to WordPress
+FailureWordPress = Connection failure with WordPress
 
 #
 # About page

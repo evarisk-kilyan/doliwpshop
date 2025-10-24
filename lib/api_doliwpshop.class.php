@@ -73,32 +73,32 @@ class WPshopAPI {
 	public static function post( $end_point, $data = array(), $method = 'POST' ) {
 		$data = json_encode( $data );
 		global $conf;
-		
+
 		$api_url = $conf->global->WPSHOP_URL_WORDPRESS . '/' . $end_point;
-		
-		$ch = curl_init(); 
-		curl_setopt($ch, CURLOPT_URL, $api_url); 
+
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $api_url);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 			'Content-Type: application/json',
 			'WPAPIKEY: ' . $conf->global->WPSHOP_TOKEN,
 			'Content-Length: ' . strlen( $data ),
-		) ); 
-		
+		) );
+
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); 
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 		$output = curl_exec($ch);
-		
+
 		curl_close($ch);
-		
+
 		if ($output === NULL) {
 			return array(
 				'status' => NULL,
 			);
 		}
-		
+
 		$output = json_decode( $output, true );
-		
+
 		if (json_last_error() != JSON_ERROR_NONE) {
 			return array(
 				'status' => false,
@@ -106,7 +106,7 @@ class WPshopAPI {
 				'error_message' => json_last_error_msg(),
 			);
 		}
-		
+
 		return array(
 			'status' => true,
 			'data' => $output,
@@ -120,23 +120,28 @@ class WPshopAPI {
 	 *
 	 * @return array|boolean   Returns the query data or false.
 	 */
-	public static function get( $end_point ) {
+	public static function get( $end_point, $api_url = null ) {
 		global $conf;
-		
-		$api_url = $conf->global->WPSHOP_URL_WORDPRESS . $end_point;
-	
-		$ch = curl_init(); 
-		curl_setopt($ch, CURLOPT_URL, $api_url); 
+
+
+		if (is_null($api_url)) {
+			$api_url = $conf->global->WPSHOP_URL_WORDPRESS . $end_point;
+		} else {
+			$api_url = $api_url . $end_point;
+		}
+
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $api_url);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 			'Content-Type: application/json',
 			'WPAPIKEY: ' . $conf->global->WPSHOP_TOKEN,
-		) ); 
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); 
-		$output = curl_exec($ch); 
-		curl_close($ch); 
-		
+		) );
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+		$output = curl_exec($ch);
+		curl_close($ch);
+
 		$output = json_decode( $output );
-		
+
 		return $output;
 	}
 }
