@@ -326,6 +326,51 @@ class InterfaceDoliWPshopTriggers extends DolibarrTriggers
 					break;
 				}
 
+			case 'PRODUCT_MODIFYY':
+				dol_syslog("Trigger '".$this->name."' for action '$action' launched by ".__FILE__.". id=".$object->id);
+				$categoriesFrompost = GETPOST('categories', 'array');
+				$categories         = $object->getCategoriesCommon('product');
+
+				$toDel = array_diff($categories, $categoriesFrompost);
+				$toAdd = array_diff($categoriesFrompost, $categories);
+
+				$config  = json_decode(getDolGlobalString('DOLIWPSHOP_CONFIG_JSON'), true) ?? [];
+				$wpsInfo = json_decode($object->array_options['options__wps_info'], true) ?? [];
+
+				if (!empty($toDel) || !empty($toAdd)) {
+
+					// require_once __DIR__ . '/../../class/product_doliwpshop.class.php';
+					$productDoliWPshop = new ProductDoliWPshop();
+
+					foreach ($config as $key => $value) {
+						if (in_array($value['DomainTagId'], $toDel)) {
+							$result = $productDoliWPshop->createProductOnWPshop($object, $value['ApiUrl'], $value['ApiKey']);
+							if ($result > 0) {
+								$wpsInfo[$value['DomainTagId']]['status'] = 'draft';
+							}
+						} elseif (in_array($value['DomainTagId'], $toAdd)) {
+							$result = $productDoliWPshop->createProductOnWPshop($object, $value['ApiUrl'], $value['ApiKey']);
+							if (empty($wpsInfo[$value['DomainTagId']])) {
+								$wpsInfo[$value['DomainTagId']] = [
+									'wps_id' => 0,
+									'status' => 'draft',
+								];
+							}
+							if ($result > 0) {
+								$wpsInfo[$value['DomainTagId']]['wps_id'] = $result;
+								$wpsInfo[$value['DomainTagId']]['status'] = 'publish';
+							}
+						}
+					}
+				}
+				$object->array_options['options__wps_info'] = json_encode($wpsInfo);
+				$result = $object->update($object->id, $user, 1, 'update', true);
+				if (!$result) {
+					setEventMessages($langs->trans("ErrorUpdateObject") . $object->id, null, 'errors');
+					return -1;
+				}
+				break;
+
 			default:
 				dol_syslog("Trigger '".$this->name."' for action '$action' launched by ".__FILE__.". id=".$object->id);
 				break;

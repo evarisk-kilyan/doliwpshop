@@ -66,30 +66,35 @@ class WPshopAPI {
 	 *
 	 * @param  string $end_point The url called.
 	 * @param  array  $data      The form data.
-	 * @param  string $method    the type of method, default POST.
 	 *
 	 * @return array|boolean   Returns the query data or false.
 	 */
-	public static function post( $end_point, $data = array(), $method = 'POST' ) {
+	public static function post( $end_point, $data = array(), $api_url = null, $api_key = null ) {
 		$data = json_encode( $data );
 		global $conf;
 
-		$api_url = $conf->global->WPSHOP_URL_WORDPRESS . '/' . $end_point;
+		if (is_null($api_url)) {
+			$api_url = $conf->global->WPSHOP_URL_WORDPRESS . '/' . $end_point;
+		} else {
+			$api_url = $api_url . $end_point;
+		}
 
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $api_url);
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-			'Content-Type: application/json',
-			'WPAPIKEY: ' . $conf->global->WPSHOP_TOKEN,
-			'Content-Length: ' . strlen( $data ),
-		) );
+		$ch = curl_init($api_url);
+		curl_setopt_array($ch, [
+			CURLOPT_POST           => 1,
+			CURLOPT_POSTFIELDS     => $data,
+			CURLOPT_RETURNTRANSFER => TRUE,
+			CURLOPT_HTTPHEADER     => [
+				'Content-Type: application/json',
+				'WPAPIKEY: ' . ($api_key ?? $conf->global->WPSHOP_TOKEN),
+				'Content-Length: ' . strlen( $data ),
+			]
+		]);
+		curl_setopt($ch, CURLINFO_HEADER_OUT, true);
 
-		curl_setopt($ch, CURLOPT_POST, 1);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 		$output = curl_exec($ch);
-
 		curl_close($ch);
+
 
 		if ($output === NULL) {
 			return array(

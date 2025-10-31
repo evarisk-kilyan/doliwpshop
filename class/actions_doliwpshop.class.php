@@ -61,11 +61,11 @@ class ActionsDoliWPshop
 		// Translations
 		$langs->load("doliwpshop@doliwpshop");
 
-		$connected = WPshopAPI::get('/wp-json/wpshop/v2/statut');
+		$connected = true;
 
 		if ( ! $connected ) {
 			setEventMessages($langs->trans("NotConnectedWPshop"), null, 'errors');
-			return -1;
+			return 0;
 		}
 		
 		if (in_array('productcard', explode(':', $parameters['context'])))

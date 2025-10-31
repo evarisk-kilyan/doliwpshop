@@ -73,7 +73,7 @@ class ProductDoliWPshop {
 	 *
 	 * @return int             <0 if KO, product object create if OK : 0
 	 */
-	public function createProductOnWPshop($object) {
+	public function createProductOnWPshop($object, $api_url = null, $api_key = null) {
 		global $user, $langs;
 
 		// Translations
@@ -84,19 +84,11 @@ class ProductDoliWPshop {
 		$response = WPshopAPI::post($url, array(
 			'doli_id' => $object->id,
 			'type'    => 'wps-product',
-		));
-	
+		), $api_url, $api_key);
+
 		if ($response['status']) {
-			$object->array_options['options__wps_id'] = $response['data']['wp_object']['data']['id'];
-			$result = $object->update($object->id, $user, 1, 'update', true);
-			if (!$result) {
-				setEventMessages($langs->trans("ErrorUpdateObject") . $object->id, null, 'errors');
-				return -1;
-			}
-			else{
-				setEventMessages($langs->trans("CreateWPSProduct") . $response['data']['wp_object']['data']['id'], null);
-				return 0;
-			}
+			setEventMessages($langs->trans("CreateWPSProduct") . $response['data']['wp_object']['data']['id'], null);
+			return $response['data']['wp_object']['data']['id'];
 		} else {
 			setEventMessages($langs->trans("ErrorPostRequest") . $url . ' "' . $response['error_message'] . '"', null, 'errors');
 			return -1;
