@@ -378,4 +378,6 @@ class InterfaceDoliWPshopTriggers extends DolibarrTriggers
 
 		return 0;
 	}
+
+	
 }

@@ -56,7 +56,7 @@ class ActionsDoliWPshop
 	 */
 	public function doActions($parameters, &$object, &$action)
 	{
-		global $langs;
+		global $langs, $db;
 		
 		// Translations
 		$langs->load("doliwpshop@doliwpshop");
@@ -68,8 +68,7 @@ class ActionsDoliWPshop
 			return 0;
 		}
 		
-		if (in_array('productcard', explode(':', $parameters['context'])))
-		{
+		if (in_array('productcard', explode(':', $parameters['context']))) {
 			$productDoliWPshop = new ProductDoliWPshop();
 			
 			if ($action == 'view' && $connected === true && ! empty($object->array_options['options__wps_id']))
@@ -81,9 +80,7 @@ class ActionsDoliWPshop
 			{
 				$productDoliWPshop->createProductOnWPshop($object);
 			}
-		}
-		if (in_array('categorycard', explode(':', $parameters['context'])))
-		{	
+		} elseif (in_array('categorycard', explode(':', $parameters['context']))) {
 			$categoryDoliWPshop = new CategoryDoliWPshop();
 			/*
 			if ($action == 'view' && $connected === true && ! empty($object->array_options['options__wps_id']))
@@ -96,9 +93,7 @@ class ActionsDoliWPshop
 				$categoryDoliWPshop->createCategoryOnWPshop($object);
 			}
 
-		}
-		if (in_array('thirdpartycard', explode(':', $parameters['context'])))
-		{
+		} elseif (in_array('thirdpartycard', explode(':', $parameters['context']))) {
 			$thirdpartyDoliWPshop = new ThirdPartyDoliWPshop();
 
 			if ($action == 'view' && $connected === true && ! empty($object->array_options['options__wps_id']))
@@ -110,10 +105,7 @@ class ActionsDoliWPshop
 			{
 				$thirdpartyDoliWPshop->createThirdPartyOnWPshop($object);
 			}
-		}
-
-		if (in_array('producttranslationcard', explode(':', $parameters['context'])))
-		{
+		} elseif (in_array('producttranslationcard', explode(':', $parameters['context']))) {
 			global $conf, $user;
 
 			if ($action == 'delete'){
@@ -146,9 +138,28 @@ class ActionsDoliWPshop
 					$actioncomm->create($user);
 				}
 			}
+		} elseif (strpos($parameters['context'], 'productpricecard') !== false) {
+			if ($action == 'update_price' && !empty(GETPOST('_wps_multishop'))) {
+				$multishop = GETPOST('_wps_multishop');
+				$datetime = GETPOSTDATE('_wps_end_date');
+
+				$sql = 'SELECT * FROM ' . MAIN_DB_PREFIX . 'product_price as p';
+				$sql .= ' ORDER BY p.tms DESC LIMIT 1';
+
+				$resql = $db->query($sql);
+				$obj   = $db->fetch_object($resql);
+				if ($obj && $obj->rowid) {
+					$newid = $obj->rowid + 1;
+
+					$sql    = 'INSERT INTO ' . MAIN_DB_PREFIX . 'product_price_extrafields(fk_object, _wps_multishop, _wps_end_date) VALUES';
+					$sql   .= '(' . $newid . ', "' . implode(', ', $multishop) . '", ' . $datetime . ')';
+					$resql2 = $db->query($sql);
+ 				}
+
+			}
 		}
 
- 	return 0;
+ 		return 0;
 	}
 
 	/**
@@ -195,4 +206,95 @@ class ActionsDoliWPshop
 			print '<div class="inline-block divButAction"><a class="butActionRefused" title="'.$langs->trans("NotAvailableObject").'" href="#">'.$langs->trans("CreateOnWPshop").'</a></div>';
 		}
 	}
+
+	/**
+     * Overloading the printCommonFooter function : replacing the parent's function with the one below
+     *
+     * @param  array     $parameters Hook metadatas (context, etc...)
+     * @return int                   0 < on error, 0 on success, 1 to replace standard code
+     * @throws Exception
+     */
+    public function printCommonFooter(array $parameters): int
+    {
+        global $langs, $user, $object, $db, $action;
+
+		if (strpos($parameters['context'], 'productpricecard') !== false) {
+			require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
+
+			if ($action == '' || $action == 'delete') {
+
+				$sql = 'SELECT * FROM ' . MAIN_DB_PREFIX . 'product_price as p';
+				$sql .= ' WHERE p.fk_product = ' . GETPOST('id') . ' ORDER BY p.tms DESC';
+
+				$object = new Product($db);
+
+
+				$resql = $object->db->query($sql);
+
+				$list = [];
+				$num = $object->db->num_rows($resql);
+				for ($i = 0; $i < $num; $i++) {
+					$obj = $object->db->fetch_object($resql);
+					$obj->table_element = 'product_price';
+
+					$sql = "SELECT e._wps_multishop FROM " . MAIN_DB_PREFIX . 'product_price_extrafields as e WHERE fk_object = ' . $obj->rowid . ' LIMIT 1';
+					$resql2 = $object->db->query($sql);
+					$extras = $object->db->fetch_object($resql2);
+					$obj->array_options = (array) ($extras ?? []);
+
+					$list[] = $obj;
+				}
+				?>
+				<script>
+					$(document).ready(() => {
+						const phpArray = <?= json_encode($list); ?>;
+
+						let $table = $('.div-table-responsive table').first();
+
+						$table.find('th.right').last().before('<th><?=  $langs->trans('MultiShop') ?></th>');
+						$table.find('th').first().after('<th><?= $langs->trans('PricePacticedFrom') ?></th>')
+
+						$table.find('tr').each((index, element) => {
+							if (index == 0) return;
+							$(element).find('td').last().before(`<td>${phpArray[index - 1].array_options._wps_multishop ?? ''}</td>`)
+							$(element).find('td').first().after(`<td>${phpArray[index - 1].array_options._wps_end_date ?? ''}</td>`);
+						})
+					})
+				</script>
+				<?php
+			} elseif ($action == 'edit_price') {
+
+				require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
+
+				$config  = json_decode(getDolGlobalString('DOLIWPSHOP_CONFIG_JSON'), true) ?? [];
+
+				$hosts = array_map(fn($i) => parse_url($i['ApiUrl'], PHP_URL_HOST), $config);
+				$result = array_combine($hosts, $hosts);
+
+				$selectArray = Form::multiselectarray('_wps_multishop', $result, [], 0, 0, '', 0, 150);
+				$datePicker = Form::selectDate('', '_wps_end_date');
+
+				?>
+				<script>
+					$(document).ready(() => {
+						const phpArray = <?= json_encode($list); ?>;
+
+						let $table = $('form table').first();
+
+						$tr = $('<tr><td><?=  $langs->trans('MultiShop') ?></td></tr>')
+						$tr.append(<?= json_encode($selectArray) ?>)
+						$table.find('tbody tr').last().after($tr);
+
+						$tr = $('<tr><td><?= $langs->trans('PricePacticedFrom') ?></td></tr>')
+						$tr.append(<?=  json_encode($datePicker) ?>)
+						$table.find('tbody tr').last().after($tr);
+					})
+				</script>
+				<?php
+			}
+
+		}
+
+        return 0; // or return 1 to replace standard code
+    }
 }
