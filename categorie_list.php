@@ -469,7 +469,7 @@ if ($mode == 'hierarchy') {
 			$link = $wp_url . '/wp-admin/term.php?taxonomy=wps-product-cat&tag_ID=' . $wps_id_text . '&post_type=wps-product';
 			$wpshop_info .= '<div style="display:inline-flex; align-items:center; gap:5px; margin-right: 15px;" title="Voir sur WPshop">'.$wp_img_tag.'<a href="'.$link.'" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding: 2px 6px; background: #0073aa; color: #fff; border-radius: 3px; font-size: 11px; text-decoration: none;">#'.$wps_id_text.'</a></div>';
 		} else {
-			$create_link = $_SERVER["PHP_SELF"].'?id='.$object->id.'&action=createwp&mode=hierarchy'.preg_replace('/(&|\?)*mode=[^&]+/', '', $param);
+			$create_link = $_SERVER["PHP_SELF"].'?id='.$object->id.'&action=createwp&token='.newToken().'&mode=hierarchy'.preg_replace('/(&|\?)*mode=[^&]+/', '', $param);
 			$create_button_html = '<a href="'.$create_link.'" style="color: #0073aa; margin-right: 5px; font-size: 1.1em;" title="Création sur WPshop"><span class="fa fa-plus-circle"></span></a>';
 		}
 		// Picto product : Nombre et lien vers la liste des produits
